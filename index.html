@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8" />
+	<title>Texture Mapping Pyramid</title>
+	<script src="three.min.js">
+
+	</script>
+
+	<!--Adapted from the blog post:
+    http://solutiondesign.com/blog/-/blogs/webgl-and-three-js-texture-mappi-1/-->
+
+	<!-- Kiara Correa Acosta
+
+  Resources: TA Hours: Sivan
+  Textures found at: https://3dtextures.me
+  Tile: https://3dtextures.me/2020/06/23/tiles-terracotta-003/
+  Marble: https://3dtextures.me/2017/03/31/red-marble-002/
+  Floor: https://3dtextures.me/2020/07/16/stylized-stone-floor-001/
+  Lecture Video 16
+-->
+
+	<script>
+		var scene, camera, renderer; // Three.js rendering basics.
+
+    var canvas; // The canvas on which the image is rendered.
+
+    // The rotating pyramid
+    var pyramid;
+    
+    // Create the scene. This function is called once, as soon as the page loads.
+    // The renderer has already been created before this function is called.
+    function createWorld() {
+        
+        renderer.setClearColor(0x000000,0); // Set background color (0, or 0x000000, is black).
+        scene = new THREE.Scene(); // Create a new scene which we can add objects to.
+    
+        // create a camera, sitting on the positive z-axis.  The camera is not part of the scene.
+        camera = new THREE.PerspectiveCamera(70, canvas.width/canvas.height, 1, 1000);
+
+        var light = new THREE.DirectionalLight( 0xffffff );
+        light.position.set( 0, 0.75, 0.5 );
+        scene.add(light);
+
+        var light2 = new THREE.DirectionalLight( 0xFFF6F4 );
+        light2.position.set( 0.2, -0.5, 0.1 );
+        scene.add(light2);
+
+        // set up the geometry for our pyramid
+        var pyramidGeom = new THREE.Geometry();
+            
+        pyramidGeom.vertices = [  // array of Vector3 giving vertex coordinates
+          new THREE.Vector3( 1, 0, 1 ),    // vertex number 0
+          new THREE.Vector3( 1, 0, -1 ),   // vertex number 1
+          new THREE.Vector3( -1, 0, -1 ),  // vertex number 2
+          new THREE.Vector3( -1, 0, 1 ),   // vertex number 3
+          new THREE.Vector3( 0, 1, 0 ),     // vertex number 4
+          new THREE.Vector3( 0, -1, 0 )    // vertex number 5
+        ];
+                
+        pyramidGeom.faces = [  // array of Face3 giving the triangular faces
+          new THREE.Face3( 3, 0, 4),  // first four faces are the four sides
+          new THREE.Face3( 0, 1, 4),
+          new THREE.Face3( 1, 2, 4),
+          new THREE.Face3( 2, 3, 4),
+          new THREE.Face3( 5, 3, 2),
+          new THREE.Face3( 0, 3, 5 ),
+          new THREE.Face3(1 , 0 , 5),
+          new THREE.Face3( 5,2, 1)
+        ];
+            
+        pyramidGeom.computeFaceNormals();    
+
+        // set up several uv coordinates to repeatedly use below
+        var uvcoords = [
+            new THREE.Vector2(0,0), // uvcoords[0]
+            new THREE.Vector2(0,1), // uvcoords[1]
+            new THREE.Vector2(1,0), // uvcoords[2]
+
+            new THREE.Vector2(0.25,0), // uvcoords[3]
+            new THREE.Vector2(1.25,0), // uvcoords[4]
+            new THREE.Vector2(0.25,1) // uvcoords[5]
+        ];
+
+        // erase any previous face coordinates
+        pyramidGeom.faceVertexUvs[0] = [];
+
+        // write one line for each of the 6 faces
+        pyramidGeom.faceVertexUvs[0] = [
+            [uvcoords[0], uvcoords[1], uvcoords[2]],
+            [uvcoords[1], uvcoords[0], uvcoords[2]],
+            [uvcoords[3], uvcoords[4], uvcoords[5]],
+            [uvcoords[4], uvcoords[3], uvcoords[5]],
+            [uvcoords[5], uvcoords[4], uvcoords[3]],
+            [uvcoords[0], uvcoords[1], uvcoords[2]],
+            [uvcoords[1], uvcoords[0], uvcoords[2]],
+            [uvcoords[4], uvcoords[3], uvcoords[5]]
+        ];
+
+        var loader = new THREE.TextureLoader();
+        var checkerMaterial = new THREE.MeshPhongMaterial( { color: "white", specular: "white", shininess: 5 } );
+        checkerMaterial.map = loader.load("checkerboard.png");
+        checkerMaterial.map.wrapS = THREE.RepeatWrapping;
+        checkerMaterial.map.wrapT = THREE.RepeatWrapping;
+        checkerMaterial.map.repeat.set(1,1);
+      
+        pyramid = new THREE.Mesh(pyramidGeom, checkerMaterial);
+        pyramid.position.set(0,0.5,-3);
+        scene.add(pyramid);
+        
+        var geometry = new THREE.PlaneGeometry( 20, 20);
+
+        //wall 1
+        var tileMaterial = new THREE.MeshPhongMaterial( { color: "white" } );
+        tileMaterial.map = loader.load( 'Tiles_basecolor.jpg' );
+        tileMaterial.bumpMap = loader.load( 'Tiles_height.png' );
+
+        tileMaterial.map.wrapS = THREE.RepeatWrapping;
+        tileMaterial.map.wrapT = THREE.RepeatWrapping;
+        tileMaterial.map.repeat.set( 2, 2);
+
+        tileMaterial.bumpMap.wrapS = THREE.RepeatWrapping;
+        tileMaterial.bumpMap.wrapT = THREE.RepeatWrapping;
+        tileMaterial.bumpMap.repeat.set( 2, 2);
+
+        var planeWall1 = new THREE.Mesh( geometry, tileMaterial );
+        planeWall1.material.bumpScale = 0.5;
+        planeWall1.position.set(-1,0,-5);
+        planeWall1.rotation.set(0,0.5,0)
+        scene.add( planeWall1 );
+
+        // wall 2
+        var stoneMaterial = new THREE.MeshPhongMaterial( { color: "white", shininess: 5 } );
+        stoneMaterial.map = loader.load( 'StoneFloor_basecolor.jpg' );
+        stoneMaterial.bumpMap = loader.load( 'StoneFloor_height.png' );
+
+        stoneMaterial.map.wrapS = THREE.RepeatWrapping;
+        stoneMaterial.map.wrapT = THREE.RepeatWrapping;
+        stoneMaterial.map.repeat.set( 5,5 ); 
+
+        stoneMaterial.bumpMap.wrapS = THREE.RepeatWrapping;
+        stoneMaterial.bumpMap.wrapT = THREE.RepeatWrapping;
+        stoneMaterial.bumpMap.repeat.set( 5,5 ); 
+        
+        var planeWall2 = new THREE.Mesh( geometry, stoneMaterial );
+        planeWall2.material.bumpScale = 0.5;
+        planeWall2.position.set(7,0,-3);
+        planeWall2.rotation.set(0,-0.3,0)
+        scene.add( planeWall2 );
+
+        // floor 
+        var marbleMaterial = new THREE.MeshPhongMaterial( { specular: "white", shininess: 5} );
+        marbleMaterial.map = loader.load( 'RedMarble_basecolor.jpg' );
+        marbleMaterial.normalMap = loader.load( 'RedMarble_normal.jpg' );
+
+        marbleMaterial.map.wrapS = THREE.RepeatWrapping;
+        marbleMaterial.map.wrapT = THREE.RepeatWrapping;
+        marbleMaterial.map.repeat.set( 10, 10 ); 
+        
+        var planefloor = new THREE.Mesh( geometry, marbleMaterial );
+        planefloor.rotation.set(-Math.PI/2,0,0);
+        planefloor.position.set(0,-1,-5);
+        scene.add( planefloor);
+    }
+
+    // Render the scene. This is called for each frame of the animation.
+    function render() {
+        requestAnimationFrame( render );
+        pyramid.rotation.x += .02;
+        pyramid.rotation.y += .01;
+        renderer.render(scene, camera);
+    }
+
+    //----------------------------------------------------------------------------------
+
+    // The init() function is called by the onload event when the document has loaded.
+    function init() {
+        try {
+            canvas = document.getElementById("glcanvas");
+            renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true} );
+        }
+        catch (e) {
+            document.getElementById("canvas-holder").innerHTML = "<h3><b>WebGL is not available.</b><h3>";
+            return;
+        }
+    
+        // create world and render scene
+        createWorld();
+        render();
+    }
+	</script>
+
+</head>
+
+<body onload="init()">
+	<div id="canvas-holder">
+		<canvas id="glcanvas" width="600" height="400"></canvas>
+	</div>
+</body>
+
+</html>
